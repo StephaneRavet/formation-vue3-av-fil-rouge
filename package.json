@@ -1,0 +1,21 @@
+{
+  "name": "formation-vue3-av-fil-rouge",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StephaneRavet/formation-vue3-av-fil-rouge.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/StephaneRavet/formation-vue3-av-fil-rouge/issues"
+  },
+  "homepage": "https://github.com/StephaneRavet/formation-vue3-av-fil-rouge#readme"
+}
