@@ -37,6 +37,130 @@ db.serialize(() => {
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+  
+  // Insérer des données fixtures pour les items (si la table est vide)
+  db.get("SELECT COUNT(*) as count FROM items", (err, row) => {
+    if (err) {
+      console.error('Erreur lors de la vérification des items:', err);
+      return;
+    }
+    
+    if (row.count === 0) {
+      console.log('Insertion des données fixtures pour les items...');
+      const itemsFixtures = [
+        'Ordinateur portable',
+        'Souris sans fil',
+        'Clavier mécanique',
+        'Écran 27 pouces',
+        'Casque audio',
+        'Webcam HD',
+        'Disque dur externe',
+        'Câble USB-C',
+        'Support d\'écran',
+        'Tapis de souris'
+      ];
+      
+      const stmt = db.prepare("INSERT INTO items (name) VALUES (?)");
+      itemsFixtures.forEach(name => {
+        stmt.run(name);
+      });
+      stmt.finalize();
+      console.log(`${itemsFixtures.length} items fixtures insérés`);
+    }
+  });
+  
+  // Insérer des données fixtures pour les profils (si la table est vide)
+  db.get("SELECT COUNT(*) as count FROM profiles", (err, row) => {
+    if (err) {
+      console.error('Erreur lors de la vérification des profils:', err);
+      return;
+    }
+    
+    if (row.count === 0) {
+      console.log('Insertion des données fixtures pour les profils...');
+      const profilesFixtures = [
+        {
+          firstName: 'Marie',
+          lastName: 'Dubois',
+          email: 'marie.dubois@example.com',
+          phone: '0123456789',
+          address: '123 Rue de la République, Lyon',
+          bio: 'Développeuse frontend passionnée par Vue.js et les technologies modernes.',
+          avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b5c0?w=150',
+          birthDate: '1992-03-15'
+        },
+        {
+          firstName: 'Pierre',
+          lastName: 'Martin',
+          email: 'pierre.martin@example.com',
+          phone: '0987654321',
+          address: '456 Avenue des Champs, Paris',
+          bio: 'Développeur fullstack spécialisé en Node.js et bases de données.',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+          birthDate: '1988-07-22'
+        },
+        {
+          firstName: 'Sophie',
+          lastName: 'Leroy',
+          email: 'sophie.leroy@example.com',
+          phone: '0156789123',
+          address: '789 Boulevard Saint-Germain, Paris',
+          bio: 'Designer UX/UI avec 8 ans d\'expérience dans le design digital.',
+          avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
+          birthDate: '1985-11-08'
+        },
+        {
+          firstName: 'Julien',
+          lastName: 'Rousseau',
+          email: 'julien.rousseau@example.com',
+          phone: '0234567890',
+          address: '321 Rue Victor Hugo, Marseille',
+          bio: 'Chef de projet technique passionné par l\'innovation et les méthodes agiles.',
+          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+          birthDate: '1990-05-14'
+        },
+        {
+          firstName: 'Emma',
+          lastName: 'Moreau',
+          email: 'emma.moreau@example.com',
+          phone: '0345678901',
+          address: '654 Place de la Comédie, Montpellier',
+          bio: 'Data scientist spécialisée en intelligence artificielle et machine learning.',
+          avatar: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150',
+          birthDate: '1993-09-12'
+        },
+        {
+          firstName: 'Thomas',
+          lastName: 'Bernard',
+          email: 'thomas.bernard@example.com',
+          phone: '0456789012',
+          address: '987 Cours Lafayette, Toulouse',
+          bio: 'Architecte logiciel expert en microservices et cloud computing.',
+          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+          birthDate: '1987-01-30'
+        }
+      ];
+      
+      const stmt = db.prepare(`INSERT INTO profiles 
+        (firstName, lastName, email, phone, address, bio, avatar, birthDate) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+        
+      profilesFixtures.forEach(profile => {
+        stmt.run([
+          profile.firstName,
+          profile.lastName,
+          profile.email,
+          profile.phone,
+          profile.address,
+          profile.bio,
+          profile.avatar,
+          profile.birthDate
+        ]);
+      });
+      stmt.finalize();
+      console.log(`${profilesFixtures.length} profils fixtures insérés`);
+    }
+  });
 });
 
 // Middleware pour simuler la latence
