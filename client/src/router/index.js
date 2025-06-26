@@ -1,13 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { defineAsyncComponent, h, Suspense } from 'vue';
-
-// Exemple de routes asynchrones
-const Home = defineAsyncComponent(() => import('../views/HomeView.vue'));
-const About = defineAsyncComponent(() => import('../views/AboutView.vue'));
+import HomeView from '../views/HomeView.vue';
 
 const routes = [
-  { path: '/', name: 'Home', component: Home },
-  { path: '/about', name: 'About', component: About },
+  { path: '/', name: 'Home', component: HomeView },
 ];
 
 const router = createRouter({

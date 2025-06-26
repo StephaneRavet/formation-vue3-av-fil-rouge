@@ -22,6 +22,21 @@ db.serialize(() => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL
   )`);
+  
+  // Table pour la gestion des profils utilisateur
+  db.run(`CREATE TABLE IF NOT EXISTS profiles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    firstName TEXT NOT NULL,
+    lastName TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    phone TEXT,
+    address TEXT,
+    bio TEXT,
+    avatar TEXT,
+    birthDate TEXT,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
 });
 
 // Middleware pour simuler la latence
@@ -85,6 +100,179 @@ app.delete('/api/items/:id', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     if (this.changes === 0) return res.status(404).json({ error: 'Not found' });
     res.status(204).send();
+  });
+});
+
+// --- API GESTION DE PROFIL ---
+
+// GET all profiles
+app.get('/api/profiles', (req, res) => {
+  db.all('SELECT * FROM profiles ORDER BY createdAt DESC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// GET profile by id
+app.get('/api/profiles/:id', (req, res) => {
+  db.get('SELECT * FROM profiles WHERE id = ?', [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Profile not found' });
+    res.json(row);
+  });
+});
+
+// POST create profile
+app.post('/api/profiles', (req, res) => {
+  const { firstName, lastName, email, phone, address, bio, avatar, birthDate } = req.body;
+  
+  // Validation des champs obligatoires
+  if (!firstName || !lastName || !email) {
+    return res.status(400).json({ error: 'firstName, lastName and email are required' });
+  }
+  
+  // Validation format email basique
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+  
+  const stmt = db.prepare(`INSERT INTO profiles 
+    (firstName, lastName, email, phone, address, bio, avatar, birthDate) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    
+  stmt.run([firstName, lastName, email, phone, address, bio, avatar, birthDate], function(err) {
+    if (err) {
+      if (err.message.includes('UNIQUE constraint failed')) {
+        return res.status(409).json({ error: 'Email already exists' });
+      }
+      return res.status(500).json({ error: err.message });
+    }
+    
+    // Récupérer le profil créé
+    db.get('SELECT * FROM profiles WHERE id = ?', [this.lastID], (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json(row);
+    });
+  });
+  stmt.finalize();
+});
+
+// PUT update profile
+app.put('/api/profiles/:id', (req, res) => {
+  const { firstName, lastName, email, phone, address, bio, avatar, birthDate } = req.body;
+  const profileId = req.params.id;
+  
+  // Validation des champs obligatoires
+  if (!firstName || !lastName || !email) {
+    return res.status(400).json({ error: 'firstName, lastName and email are required' });
+  }
+  
+  // Validation format email basique
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+  
+  const stmt = db.prepare(`UPDATE profiles SET 
+    firstName = ?, lastName = ?, email = ?, phone = ?, 
+    address = ?, bio = ?, avatar = ?, birthDate = ?, 
+    updatedAt = CURRENT_TIMESTAMP 
+    WHERE id = ?`);
+    
+  stmt.run([firstName, lastName, email, phone, address, bio, avatar, birthDate, profileId], function(err) {
+    if (err) {
+      if (err.message.includes('UNIQUE constraint failed')) {
+        return res.status(409).json({ error: 'Email already exists' });
+      }
+      return res.status(500).json({ error: err.message });
+    }
+    
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+    
+    // Récupérer le profil mis à jour
+    db.get('SELECT * FROM profiles WHERE id = ?', [profileId], (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(row);
+    });
+  });
+  stmt.finalize();
+});
+
+// PATCH partial update profile
+app.patch('/api/profiles/:id', (req, res) => {
+  const profileId = req.params.id;
+  const updates = req.body;
+  
+  // Vérifier que le profil existe
+  db.get('SELECT * FROM profiles WHERE id = ?', [profileId], (err, profile) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    
+    // Construire la requête dynamiquement
+    const allowedFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'bio', 'avatar', 'birthDate'];
+    const fieldsToUpdate = [];
+    const values = [];
+    
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key)) {
+        fieldsToUpdate.push(`${key} = ?`);
+        values.push(value);
+      }
+    }
+    
+    if (fieldsToUpdate.length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+    
+    // Validation email si présent
+    if (updates.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(updates.email)) {
+        return res.status(400).json({ error: 'Invalid email format' });
+      }
+    }
+    
+    fieldsToUpdate.push('updatedAt = CURRENT_TIMESTAMP');
+    values.push(profileId);
+    
+    const query = `UPDATE profiles SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
+    
+    db.run(query, values, function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE constraint failed')) {
+          return res.status(409).json({ error: 'Email already exists' });
+        }
+        return res.status(500).json({ error: err.message });
+      }
+      
+      // Récupérer le profil mis à jour
+      db.get('SELECT * FROM profiles WHERE id = ?', [profileId], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(row);
+      });
+    });
+  });
+});
+
+// DELETE profile
+app.delete('/api/profiles/:id', (req, res) => {
+  db.run('DELETE FROM profiles WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'Profile not found' });
+    res.status(204).send();
+  });
+});
+
+// GET profiles by email (utile pour la recherche)
+app.get('/api/profiles/search/:email', (req, res) => {
+  const email = req.params.email;
+  db.get('SELECT * FROM profiles WHERE email = ?', [email], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Profile not found' });
+    res.json(row);
   });
 });
 

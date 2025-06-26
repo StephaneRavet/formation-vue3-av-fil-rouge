@@ -41,6 +41,16 @@ npm start        # Lancer en mode production
 
 ## Endpoints API disponibles
 
+### Gestion des profils (SQLite réelle)
+- `GET    /api/profiles` → liste tous les profils
+- `GET    /api/profiles/:id` → récupère un profil par ID
+- `POST   /api/profiles` → crée un nouveau profil
+- `PUT    /api/profiles/:id` → met à jour complètement un profil
+- `PATCH  /api/profiles/:id` → met à jour partiellement un profil
+- `DELETE /api/profiles/:id` → supprime un profil
+- `GET    /api/profiles/search/:email` → recherche un profil par email
+
+### Autres endpoints
 - `POST   /api/login` → `{ token, role }` (stub)
 - `GET    /api/users/:id` → utilisateur fictif
 - `GET    /api/products/:productId` → produit fictif
@@ -71,6 +81,30 @@ npm start        # Lancer en mode production
 fetch('http://localhost:3001/api/items')
   .then(res => res.json())
   .then(data => console.log(data));
+```
+
+- Exemple pour créer un profil :
+
+```js
+const newProfile = {
+  firstName: 'Jean',
+  lastName: 'Dupont',
+  email: 'jean.dupont@example.com',
+  phone: '0123456789',
+  address: '123 Rue de la Paix, Paris',
+  bio: 'Développeur passionné',
+  birthDate: '1990-01-15'
+};
+
+fetch('http://localhost:3001/api/profiles', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(newProfile)
+})
+.then(res => res.json())
+.then(data => console.log(data));
 ```
 
 ## Démarrage rapide
