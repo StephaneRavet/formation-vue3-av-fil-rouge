@@ -1,115 +1,86 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from './composables/useAuth'
-import Accordion from './components/Accordion.vue'
+import { usePerformanceMode } from './composables/usePerformanceMode'
+import Modal from './components/Modal.vue'
 
 const router = useRouter()
 const auth = useAuth()
+const performance = usePerformanceMode()
 
-// Initialiser l'authentification au montage du composant
+// Initialize auth on mount
 onMounted(() => {
   auth.initializeAuth()
 })
 
-// Navigation items basés sur l'état d'authentification
-const navigationItems = computed(() => {
-  const items = [
-    {
-      title: 'Accueil',
-      to: '/',
-      icon: 'mdi-home',
-      public: true
-    },
-    {
-      title: 'Produit',
-      to: '/product/123',
-      icon: 'mdi-package-variant',
-      public: true
-    }
-  ]
-
-  if (auth.isAuthenticated.value) {
-    items.push(
-      {
-        title: 'Profil',
-        to: '/profile',
-        icon: 'mdi-account',
-        auth: true
-      },
-      {
-        title: 'Dashboard',
-        to: '/dashboard',
-        icon: 'mdi-view-dashboard',
-        auth: true
-      },
-      {
-        title: 'Éditeur',
-        to: '/editor',
-        icon: 'mdi-pencil',
-        auth: true
-      }
-    )
-
-    if (auth.hasRole('admin')) {
-      items.push({
-        title: 'Administration',
-        to: '/admin',
-        icon: 'mdi-shield-account',
-        admin: true
-      })
-    }
-  } else {
-    items.push({
-      title: 'Connexion',
-      to: '/login',
-      icon: 'mdi-login',
-      public: true
-    })
+// Navigation items
+const navigationItems = [
+  {
+    title: 'Accueil',
+    to: '/',
+    icon: 'mdi-home'
+  },
+  {
+    title: 'Produit',
+    to: '/product/123',
+    icon: 'mdi-package-variant'
+  },
+  {
+    title: 'Dashboard',
+    to: '/dashboard',
+    icon: 'mdi-view-dashboard'
+  },
+  {
+    title: 'Profiles',
+    to: '/profiles',
+    icon: 'mdi-pencil'
+  },
+  {
+    title: 'Admin',
+    to: '/admin',
+    icon: 'mdi-shield-account'
   }
+]
 
-  return items
+// Modal demonstration
+const showModal = ref(false)
+
+// Current route for highlighting active navigation - optimized
+const currentRoute = ref(router.currentRoute.value.path)
+
+// Update route efficiently
+router.afterEach((to) => {
+  currentRoute.value = to.path
 })
 
-const testError = () => {
-  router.push('/existe-pas')
+// Quick login for testing
+const quickLogin = () => {
+  auth.login({
+    email: 'test@example.com',
+    name: 'Utilisateur Test',
+    role: 'user'
+  })
 }
 
-const logout = () => {
+const quickLogout = () => {
   auth.logout()
-  router.push('/login')
 }
 
-// Sample data for Accordion component demonstration
-const accordionItems = ref([
-  {
-    title: 'Qu\'est-ce que Vue 3 ?',
-    content: 'Vue 3 est la dernière version majeure du framework JavaScript Vue.js. Elle apporte de nombreuses améliorations en termes de performance, de composition API, et de TypeScript support.'
-  },
-  {
-    title: 'Qu\'est-ce qu\'un Scoped Slot ?',
-    content: 'Un scoped slot permet au composant parent de recevoir des données du composant enfant. C\'est un moyen puissant de personnaliser le rendu tout en gardant la logique dans le composant enfant.'
-  },
-  {
-    title: 'Comment utiliser la Composition API ?',
-    content: 'La Composition API permet d\'organiser le code de composant par fonctionnalité logique plutôt que par type d\'option. Utilisez setup() ou <script setup> pour en profiter.'
-  },
-  {
-    title: 'Avantages de Vuetify',
-    content: 'Vuetify est une bibliothèque de composants Material Design pour Vue.js qui fournit une collection complète de composants pré-construits et stylés.'
-  }
-])
+// Computed pour la démonstration - maintenant sans erreur
+const demoComputed = computed(() => {
+  return 'Démonstration réussie'
+})
 </script>
 
 <template>
   <v-app>
-    <!-- Menu de navigation -->
     <v-app-bar app color="primary" dark>
-      <v-app-bar-title>Mon Application Vue 3</v-app-bar-title>
+      <v-app-bar-title>Vue 3 App avec Modal Teleport</v-app-bar-title>
       
       <v-spacer></v-spacer>
       
-      <!-- Menu de navigation -->
+      <!-- Navigation Menu -->
       <v-btn
         v-for="item in navigationItems"
         :key="item.to"
@@ -117,136 +88,267 @@ const accordionItems = ref([
         variant="text"
         :prepend-icon="item.icon"
         class="mx-1"
+        :class="{ 'router-link-active': currentRoute === item.to }"
       >
         {{ item.title }}
       </v-btn>
       
-      <!-- Informations utilisateur et déconnexion -->
-      <div v-if="auth.isAuthenticated.value" class="user-info">
-        <v-chip 
-          :color="auth.role.value === 'admin' ? 'success' : 'info'"
-          class="ma-2"
-        >
-          {{ auth.user.value?.name }} ({{ auth.role.value }})
-        </v-chip>
-        <v-btn
-          @click="logout"
-          variant="outlined"
-          prepend-icon="mdi-logout"
-          class="ma-1"
-        >
-          Déconnexion
-        </v-btn>
-      </div>
+      <!-- Performance Mode Toggle -->
+      <v-divider vertical class="mx-2"></v-divider>
+      <v-tooltip bottom>
+        <template #activator="{ props }">
+          <v-switch
+            v-bind="props"
+            v-model="performance.isVOnceEnabled.value"
+            @change="performance.toggleVOnce"
+            color="success"
+            hide-details
+            density="compact"
+            class="mr-2"
+            label="v-once"
+          ></v-switch>
+        </template>
+        <span>Activer/Désactiver v-once</span>
+      </v-tooltip>
+      
+      <v-tooltip bottom>
+        <template #activator="{ props }">
+          <v-switch
+            v-bind="props"
+            v-model="performance.isVMemoEnabled.value"
+            @change="performance.toggleVMemo"
+            color="info"
+            hide-details
+            density="compact"
+            class="mr-2"
+            label="v-memo"
+          ></v-switch>
+        </template>
+        <span>Activer/Désactiver v-memo</span>
+      </v-tooltip>
+
+      <!-- Quick Auth Buttons for Testing -->
+      <v-divider vertical class="mx-2"></v-divider>
+      <v-btn
+        v-if="!auth.isAuthenticated.value"
+        @click="quickLogin"
+        variant="outlined"
+        color="white"
+        size="small"
+        prepend-icon="mdi-login"
+      >
+        Test Login
+      </v-btn>
+      <v-btn
+        v-else
+        @click="quickLogout"
+        variant="outlined"
+        color="white"
+        size="small"
+        prepend-icon="mdi-logout"
+      >
+        {{ auth.user.value?.name }} - Logout
+      </v-btn>
     </v-app-bar>
 
-    <!-- Contenu principal -->
     <v-main>
-      <v-container>
-        <!-- Indicateur de debug -->
-        <div class="debug-panel">
-          <v-chip size="small" color="warning" class="ma-1">
-            Debug - État Auth: {{ auth.isAuthenticated.value ? 'Connecté' : 'Déconnecté' }}
-          </v-chip>
-          <v-chip v-if="auth.isAuthenticated.value" size="small" color="info" class="ma-1">
-            Rôle: {{ auth.role.value }}
-          </v-chip>
-          <v-btn size="small" @click="testError" color="error" variant="outlined" class="ma-1">
-            Test Error
-          </v-btn>
-        </div>
-        
-        <!-- Accordion Component Demo -->
-        <v-row class="ma-4">
+      <v-container fluid class="pa-6">
+        <!-- Modal Component Demo with Teleport - Only on Home page -->
+        <v-row v-if="currentRoute === '/'">
           <v-col cols="12">
-            <h2 class="mb-4">💻 Démonstration du composant Accordion avec Scoped Slots</h2>
+            <!-- Affichage de la démonstration -->
+            <div>{{ demoComputed }}</div>
             
-            <Accordion :items="accordionItems" :multiple="true">
-              <!-- Custom header slot with scoped data -->
-              <template #header="{ item, index, isOpen }">
-                <div class="custom-header">
-                  <v-icon 
-                    :color="isOpen ? 'primary' : 'grey'" 
-                    class="mr-3"
-                  >
-                    mdi-help-circle
-                  </v-icon>
-                  <span class="header-title" :class="{ 'text-primary': isOpen }">
-                    {{ item.title }}
-                  </span>
-                  <v-chip 
-                    size="small" 
-                    :color="isOpen ? 'success' : 'default'"
-                    class="ml-auto mr-3"
-                  >
-                    {{ isOpen ? 'Ouvert' : 'Fermé' }}
-                  </v-chip>
-                </div>
-              </template>
+            <v-card class="pa-6" elevation="3">
+              <v-card-title class="text-h4 text-center mb-4">
+                🚀 Démonstration Modal avec Teleport & Focus Trap
+              </v-card-title>
               
-              <!-- Custom content slot (optional) -->
-              <template #content="{ item, index }">
-                <v-card flat class="custom-content">
-                  <v-card-text>
-                    {{ item.content }}
-                  </v-card-text>
-                  <v-card-actions>
-                    <v-btn 
-                      variant="outlined" 
-                      size="small"
-                      prepend-icon="mdi-information"
-                    >
-                      En savoir plus
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
-              </template>
-            </Accordion>
+              <v-card-text>
+                <p class="text-body-1 mb-4">Cette modal utilise :</p>
+                <v-list>
+                  <v-list-item>
+                    <template #prepend>
+                      <v-icon color="primary">mdi-export</v-icon>
+                    </template>
+                    <v-list-item-title><strong>Teleport</strong> : Rendue dans #teleport-root</v-list-item-title>
+                  </v-list-item>
+                  <v-list-item>
+                    <template #prepend>
+                      <v-icon color="success">mdi-keyboard</v-icon>
+                    </template>
+                    <v-list-item-title><strong>Focus Trap</strong> : Focus confiné dans la modal</v-list-item-title>
+                  </v-list-item>
+                  <v-list-item>
+                    <template #prepend>
+                      <v-icon color="info">mdi-tab</v-icon>
+                    </template>
+                    <v-list-item-title><strong>Navigation</strong> : Tab/Shift+Tab pour naviguer</v-list-item-title>
+                  </v-list-item>
+                  <v-list-item>
+                    <template #prepend>
+                      <v-icon color="warning">mdi-keyboard-esc</v-icon>
+                    </template>
+                    <v-list-item-title><strong>Échappement</strong> : Échap pour fermer</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-card-text>
+              
+              <v-card-actions class="justify-center">
+                <v-btn 
+                  @click="showModal = true"
+                  color="primary"
+                  size="large"
+                  prepend-icon="mdi-window-maximize"
+                  class="mr-4"
+                >
+                  Ouvrir la Modal
+                </v-btn>
+                
+                <!-- Bouton d'information -->
+                <v-btn 
+                  @click="showModal = true"
+                  color="success"
+                  size="large"
+                  prepend-icon="mdi-information"
+                  variant="outlined"
+                >
+                  ℹ️ Plus d'info
+                </v-btn>
+              </v-card-actions>
+            </v-card>
           </v-col>
         </v-row>
         
+        <!-- Router View for all pages -->
         <router-view />
       </v-container>
     </v-main>
+
+    <!-- Modal with Teleport - will be rendered in #teleport-root -->
+    <Teleport to="#teleport-root">
+      <Modal
+        v-model:modelValue="showModal"
+        :closeOnOverlay="true"
+        :closeOnEscape="true"
+        :showCloseButton="true"
+      >
+        <template #header>
+          <h2>🎯 Modal avec Teleport et Focus Trap</h2>
+        </template>
+        
+        <div class="modal-demo-content">
+          <p>Cette modal démontre l'utilisation de :</p>
+          <ul>
+            <li><strong>Teleport :</strong> Le contenu est rendu dans #teleport-root</li>
+            <li><strong>Focus trap :</strong> Naviguez avec Tab - le focus reste dans la modal</li>
+            <li><strong>Accessibilité :</strong> Support complet du clavier</li>
+          </ul>
+          
+          <div class="form-demo">
+            <label for="demo-input">Champ de test :</label>
+            <input id="demo-input" type="text" placeholder="Tapez quelque chose..." />
+            
+            <label for="demo-select">Liste déroulante :</label>
+            <select id="demo-select">
+              <option>Option 1</option>
+              <option>Option 2</option>
+              <option>Option 3</option>
+            </select>
+            
+            <textarea placeholder="Zone de texte..." rows="3"></textarea>
+          </div>
+        </div>
+
+        <template #footer>
+          <button @click="showModal = false" class="btn-secondary">
+            Annuler
+          </button>
+          <button @click="showModal = false" class="btn-primary">
+            Confirmer
+          </button>
+        </template>
+      </Modal>
+    </Teleport>
   </v-app>
 </template>
 
 <style scoped>
-/* Styles personnalisés pour l'application */
-.v-btn.router-link-active {
+/* Navigation styles */
+.router-link-active {
   background-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-.user-info {
+/* Modal demo styles */
+.modal-demo-content {
+  line-height: 1.6;
+}
+
+.modal-demo-content ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.modal-demo-content li {
+  margin: 0.5rem 0;
+}
+
+.form-demo {
+  margin-top: 1.5rem;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.debug-panel {
-  position: fixed;
-  top: 80px;
-  right: 16px;
-  z-index: 1000;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 8px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Custom styles for Accordion demo */
-.custom-header {
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.header-title {
+.form-demo label {
   font-weight: 500;
-  font-size: 1.1rem;
-  transition: color 0.3s ease;
+  margin-bottom: 0.25rem;
 }
 
-.custom-content {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+.form-demo input,
+.form-demo select,
+.form-demo textarea {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-demo input:focus,
+.form-demo select:focus,
+.form-demo textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #2563eb;
+}
+
+.btn-secondary {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  margin-right: 0.5rem;
+}
+
+.btn-secondary:hover {
+  background-color: #e5e7eb;
 }
 </style>

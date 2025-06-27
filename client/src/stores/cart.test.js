@@ -26,6 +26,7 @@ test('addItemToCart ajoute un produit dans items', async () => {
   
   // Mock successful API response
   fetch.mockResolvedValueOnce({
+    url: 'http://localhost:3001/api/cart',
     ok: true,
     json: async () => mockItem
   })
@@ -117,4 +118,4 @@ test('fetchCart gère les erreurs API', async () => {
   })
   
   await expect(cart.fetchCart()).rejects.toThrow('HTTP error! status: 404')
-}) 
+})

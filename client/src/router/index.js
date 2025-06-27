@@ -7,6 +7,7 @@ import OverviewView from '../views/OverviewView.vue';
 import StatsView from '../views/StatsView.vue';
 import LoginView from '../views/LoginView.vue';
 import ProfileView from '../views/ProfileView.vue';
+import ProfileListView from '../views/ProfileListView.vue';
 import AdminView from '../views/AdminView.vue';
 import EditorView from '../views/EditorView.vue';
 
@@ -33,6 +34,14 @@ const routes = [
     component: ProfileView,
     meta: {
       requiresAuth: true, // Route protégée par authentification
+    }
+  },
+  {
+    path: '/profiles',
+    name: 'ProfileList',
+    component: ProfileListView,
+    meta: {
+      requiresAuth: false, // Accessible sans authentification pour la démonstration
     }
   },
   {
